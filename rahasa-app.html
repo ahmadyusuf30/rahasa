@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rahasa - Ruang Curhat Anonim</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e27;
+            --bg-secondary: #151b3d;
+            --bg-chat: #1a2142;
+            --accent-primary: #00ff9d;
+            --accent-secondary: #00d4ff;
+            --accent-warm: #ff6b9d;
+            --text-primary: #e8ecf7;
+            --text-secondary: #8b95c9;
+            --text-muted: #4a5580;
+            --border-color: #2a3358;
+            --shadow-glow: 0 0 40px rgba(0, 255, 157, 0.15);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .grain-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            opacity: 0.5;
+            z-index: 9999;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            height: 100vh;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1142 100%);
+            position: relative;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo {
+            padding: 30px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo h1 {
+            font-family: 'Space Mono', monospace;
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+            text-transform: lowercase;
+        }
+
+        .logo p {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 6px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .status-section {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .status-label {
+            color: var(--text-muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            background: var(--bg-chat);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid transparent;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .status-item:hover {
+            border-color: var(--accent-primary);
+            background: rgba(0, 255, 157, 0.05);
+            transform: translateX(2px);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            box-shadow: 0 0 12px var(--accent-primary);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.95); }
+        }
+
+        .status-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .status-count {
+            margin-left: auto;
+            color: var(--accent-primary);
+            font-weight: 700;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .share-button {
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 16px rgba(0, 255, 157, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .share-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(0, 255, 157, 0.4);
+        }
+
+        .share-button:active {
+            transform: translateY(0);
+        }
+
+        .room-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+        }
+
+        .room-item {
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            background: var(--bg-chat);
+            border-radius: 10px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .room-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: var(--accent-primary);
+            transform: scaleY(0);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .room-item:hover::before,
+        .room-item.active::before {
+            transform: scaleY(1);
+        }
+
+        .room-item:hover {
+            background: rgba(0, 255, 157, 0.08);
+            border-color: var(--accent-primary);
+            transform: translateX(4px);
+        }
+
+        .room-item.active {
+            background: rgba(0, 255, 157, 0.12);
+            border-color: var(--accent-primary);
+        }
+
+        .room-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .room-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Main Chat Area */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .chat-header {
+            padding: 24px 32px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-title h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .chat-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .privacy-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(0, 255, 157, 0.1);
+            border: 1px solid var(--accent-primary);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-primary);
+        }
+
+        .lock-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Messages Area */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+            background: var(--bg-primary);
+            position: relative;
+        }
+
+        .messages-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(0, 255, 157, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(0, 212, 255, 0.03) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .message {
+            margin-bottom: 24px;
+            animation: messageSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--bg-primary);
+            font-family: 'Space Mono', monospace;
+        }
+
+        .username {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .timestamp {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .message-content {
+            margin-left: 48px;
+            padding: 14px 18px;
+            background: var(--bg-chat);
+            border-radius: 12px;
+            border-left: 3px solid var(--accent-primary);
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .message.self .message-content {
+            background: rgba(0, 255, 157, 0.08);
+            border-left-color: var(--accent-secondary);
+        }
+
+        /* Input Area */
+        .input-container {
+            padding: 24px 32px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .input-field {
+            flex: 1;
+            background: var(--bg-chat);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px 18px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'DM Sans', sans-serif;
+            resize: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 120px;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            background: rgba(0, 255, 157, 0.05);
+            box-shadow: 0 0 0 4px rgba(0, 255, 157, 0.1);
+        }
+
+        .send-button {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 16px rgba(0, 255, 157, 0.3);
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(0, 255, 157, 0.4);
+        }
+
+        .send-button:active {
+            transform: translateY(0);
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .welcome-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .welcome-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-text {
+            color: var(--text-secondary);
+            font-size: 16px;
+            line-height: 1.6;
+            max-width: 500px;
+            margin-bottom: 32px;
+        }
+
+        .start-button {
+            padding: 16px 48px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 24px rgba(0, 255, 157, 0.3);
+        }
+
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(0, 255, 157, 0.4);
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .messages-container {
+                padding: 20px;
+            }
+
+            .input-container {
+                padding: 16px;
+            }
+        }
+
+        /* Loading Animation */
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            margin-left: 48px;
+            padding: 12px 18px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                opacity: 0.3;
+                transform: translateY(0);
+            }
+            30% {
+                opacity: 1;
+                transform: translateY(-8px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="grain-overlay"></div>
+    
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h1>rahasa.</h1>
+                <p>ruang curhat tanpa justifikasi</p>
+            </div>
+
+            <div class="status-section">
+                <div class="status-label">Status</div>
+                <div class="status-item">
+                    <div class="status-dot"></div>
+                    <span class="status-text">Online Sekarang</span>
+                    <span class="status-count" id="activeUserCount">0</span>
+                </div>
+            </div>
+
+            <div style="padding: 20px 24px; margin-top: auto;">
+                <div class="status-label" style="margin-bottom: 12px;">Ajak Teman</div>
+                <button class="share-button" onclick="shareApp()">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" style="margin-right: 8px;">
+                        <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"/>
+                    </svg>
+                    Share Rahasa
+                </button>
+                <p style="font-size: 11px; color: var(--text-muted); margin-top: 12px; line-height: 1.5;">
+                    Semakin banyak yang join, semakin cepat dapat teman ngobrol!
+                </p>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Welcome Screen -->
+            <div class="welcome-screen" id="welcomeScreen">
+                <div class="welcome-icon">🎧</div>
+                <h1 class="welcome-title">Selamat Datang di Rahasa</h1>
+                <p class="welcome-text">
+                    Ruang untuk berbagi cerita dengan orang anonim, sehingga kamu bisa bebas ngobrol tanpa rasa khawatir.
+                </p>
+                <button class="start-button" onclick="startChat()">Mulai Ngobrol</button>
+            </div>
+
+            <!-- Chat Interface (hidden initially) -->
+            <div id="chatInterface" style="display: none; height: 100%; flex-direction: column;">
+                <div class="chat-header">
+                    <div class="chat-title">
+                        <h2>💬 Chat Anonim</h2>
+                        <div class="chat-subtitle">Terhubung dengan <span id="partnerName">...</span></div>
+                    </div>
+                    <div class="privacy-badge">
+                        <svg class="lock-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Terenkripsi End-to-End</span>
+                    </div>
+                </div>
+
+                <div class="messages-container" id="messagesContainer">
+                    <!-- Messages will be added here -->
+                </div>
+
+                <div class="input-container">
+                    <div class="input-wrapper">
+                        <textarea 
+                            class="input-field" 
+                            id="messageInput" 
+                            placeholder="Tulis cerita atau perasaanmu di sini... Kami mendengar 💚"
+                            rows="1"></textarea>
+                        <button class="send-button" onclick="sendMessage()">Kirim</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Persistent storage for real peer-to-peer chat
+        const STORAGE_PREFIX = 'rahasa_';
+        let currentUserId = null;
+        let currentRoomId = 'main'; // Single room now
+        let currentMatchId = null;
+        let partnerName = null;
+        let userName = null;
+        let lastMessageCheck = Date.now();
+        let checkInterval = null;
+        let activeUsersInterval = null;
+
+        // Random name generator
+        const adjectives = ['Baik', 'Sabar', 'Ramah', 'Pengertian', 'Hangat', 'Lembut', 'Bijak', 'Peduli', 'Tenang', 'Jujur'];
+        const nouns = ['Pendengar', 'Teman', 'Sahabat', 'Kawan', 'Pendamping', 'Pejuang', 'Pelangi', 'Bintang'];
+        
+        function generateRandomName() {
+            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const noun = nouns[Math.floor(Math.random() * nouns.length)];
+            const num = Math.floor(Math.random() * 999) + 1;
+            return `${adj}${noun}${num}`;
+        }
+
+        function generateUserId() {
+            return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function generateMatchId() {
+            return 'match_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Share functionality
+        function shareApp() {
+            // Get the current URL
+            const currentUrl = window.location.href;
+            
+            const shareData = {
+                title: 'Rahasa - Ruang Curhat Anonim',
+                text: 'Yuk ngobrol bareng di Rahasa! Chat anonim dengan orang sungguhan tanpa judgment 💚\n\n' + currentUrl,
+                url: currentUrl
+            };
+
+            // Check if Web Share API is available (mobile browsers)
+            if (navigator.share && navigator.canShare) {
+                // Try to share with text and URL
+                navigator.share(shareData)
+                    .then(() => console.log('Shared successfully'))
+                    .catch(err => {
+                        console.log('Error sharing:', err);
+                        // Fallback to copy just URL
+                        copyToClipboard(currentUrl);
+                    });
+            } else {
+                // Desktop: copy just the URL to clipboard
+                copyToClipboard(currentUrl);
+            }
+        }
+
+        // Helper function to copy to clipboard
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text)
+                    .then(() => {
+                        showNotification('✅ Link berhasil disalin! Share ke teman-temanmu 🎉');
+                    })
+                    .catch(() => {
+                        // Final fallback: show prompt
+                        fallbackCopy(text);
+                    });
+            } else {
+                // Fallback for older browsers
+                fallbackCopy(text);
+            }
+        }
+
+        // Fallback copy method for older browsers
+        function fallbackCopy(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showNotification('✅ Link berhasil disalin! Share ke teman-temanmu 🎉');
+            } catch (err) {
+                // Ultimate fallback: show prompt
+                const userCopy = prompt('Copy link ini untuk share:', text);
+                if (userCopy !== null) {
+                    showNotification('📋 Jangan lupa share link-nya ya!');
+                }
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // Show notification
+        function showNotification(message) {
+            // Remove existing notification if any
+            const existingNotif = document.getElementById('shareNotification');
+            if (existingNotif) {
+                existingNotif.remove();
+            }
+
+            const notification = document.createElement('div');
+            notification.id = 'shareNotification';
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+                color: var(--bg-primary);
+                padding: 16px 24px;
+                border-radius: 12px;
+                box-shadow: 0 8px 24px rgba(0, 255, 157, 0.4);
+                font-weight: 600;
+                font-size: 14px;
+                z-index: 10000;
+                animation: slideIn 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            // Add animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from {
+                        transform: translateX(400px);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                @keyframes slideOut {
+                    from {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                    to {
+                        transform: translateX(400px);
+                        opacity: 0;
+                    }
+                }
+            `;
+            if (!document.getElementById('notificationStyles')) {
+                style.id = 'notificationStyles';
+                document.head.appendChild(style);
+            }
+
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Update active user count
+        async function updateActiveUserCount() {
+            try {
+                const poolKey = `${STORAGE_PREFIX}pool_${currentRoomId}`;
+                const poolData = await window.storage.get(poolKey, true);
+                
+                let activeCount = 0;
+                if (poolData) {
+                    let pool = JSON.parse(poolData.value);
+                    // Clean old users (older than 2 minutes for accurate count)
+                    const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+                    pool.users = pool.users.filter(u => u.timestamp > twoMinutesAgo);
+                    activeCount = pool.users.length;
+                }
+                
+                // Also count users in active matches
+                const matchesKey = `${STORAGE_PREFIX}active_matches`;
+                const matchesData = await window.storage.get(matchesKey, true);
+                if (matchesData) {
+                    const matches = JSON.parse(matchesData.value);
+                    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+                    const activeMatches = matches.filter(m => m.lastActivity > fiveMinutesAgo);
+                    activeCount += activeMatches.length * 2; // 2 users per match
+                }
+                
+                document.getElementById('activeUserCount').textContent = activeCount;
+            } catch (error) {
+                console.log('Error updating user count:', error);
+                document.getElementById('activeUserCount').textContent = '...';
+            }
+        }
+
+        // Initialize user
+        async function initializeUser() {
+            currentUserId = generateUserId();
+            userName = generateRandomName();
+            
+            // Register user in waiting pool
+            try {
+                const poolKey = `${STORAGE_PREFIX}pool_${currentRoomId}`;
+                const poolData = await window.storage.get(poolKey, true);
+                let pool = poolData ? JSON.parse(poolData.value) : { users: [] };
+                
+                // Clean old users (older than 5 minutes)
+                const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+                pool.users = pool.users.filter(u => u.timestamp > fiveMinutesAgo);
+                
+                // Add current user
+                pool.users.push({
+                    userId: currentUserId,
+                    userName: userName,
+                    timestamp: Date.now()
+                });
+                
+                await window.storage.set(poolKey, JSON.stringify(pool), true);
+                
+                // Update active user count
+                await updateActiveUserCount();
+                
+            } catch (error) {
+                console.log('Storage not available, using local mode');
+            }
+        }
+
+        // Find or create a match
+        async function findMatch() {
+            try {
+                const poolKey = `${STORAGE_PREFIX}pool_${currentRoomId}`;
+                const poolData = await window.storage.get(poolKey, true);
+                
+                if (!poolData) {
+                    showWaitingMessage();
+                    return;
+                }
+                
+                let pool = JSON.parse(poolData.value);
+                
+                // Clean old users
+                const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+                pool.users = pool.users.filter(u => u.timestamp > fiveMinutesAgo);
+                
+                // Find available partner (not self)
+                const availableUsers = pool.users.filter(u => u.userId !== currentUserId);
+                
+                if (availableUsers.length === 0) {
+                    showWaitingMessage();
+                    // Update own timestamp
+                    const myUser = pool.users.find(u => u.userId === currentUserId);
+                    if (myUser) myUser.timestamp = Date.now();
+                    await window.storage.set(poolKey, JSON.stringify(pool), true);
+                    return;
+                }
+                
+                // Pick a random available user
+                const partner = availableUsers[Math.floor(Math.random() * availableUsers.length)];
+                partnerName = partner.userName;
+                
+                // Create match room
+                currentMatchId = generateMatchId();
+                
+                // Remove both users from pool
+                pool.users = pool.users.filter(u => u.userId !== currentUserId && u.userId !== partner.userId);
+                await window.storage.set(poolKey, JSON.stringify(pool), true);
+                
+                // Create match data
+                const matchData = {
+                    matchId: currentMatchId,
+                    roomId: currentRoomId,
+                    users: [
+                        { userId: currentUserId, userName: userName },
+                        { userId: partner.userId, userName: partner.userName }
+                    ],
+                    createdAt: Date.now(),
+                    lastActivity: Date.now(),
+                    messages: []
+                };
+                
+                await window.storage.set(`${STORAGE_PREFIX}match_${currentMatchId}`, JSON.stringify(matchData), true);
+                
+                // Track active match
+                const matchesKey = `${STORAGE_PREFIX}active_matches`;
+                const matchesData = await window.storage.get(matchesKey, true);
+                let matches = matchesData ? JSON.parse(matchesData.value) : [];
+                matches.push({
+                    matchId: currentMatchId,
+                    lastActivity: Date.now()
+                });
+                await window.storage.set(matchesKey, JSON.stringify(matches), true);
+                
+                // Start chat
+                startMatchedChat();
+                
+                // Update user count
+                await updateActiveUserCount();
+                
+            } catch (error) {
+                console.error('Error finding match:', error);
+                showWaitingMessage();
+            }
+        }
+
+        function showWaitingMessage() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            messagesContainer.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 40px;">
+                    <div style="font-size: 48px; margin-bottom: 20px; animation: pulse 2s ease-in-out infinite;">🔍</div>
+                    <h2 style="font-size: 24px; margin-bottom: 12px; color: var(--accent-primary);">Mencari partner chat...</h2>
+                    <p style="color: var(--text-secondary); max-width: 400px; margin-bottom: 20px;">Sedang mencarikan kamu seseorang untuk ngobrol. Tunggu sebentar ya!</p>
+                    <div class="typing-indicator" style="margin-top: 24px;">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-top: 32px;">💡 Tip: Share link ini ke teman supaya lebih cepat dapat match!</p>
+                </div>
+            `;
+        }
+
+        function startMatchedChat() {
+            document.getElementById('partnerName').textContent = partnerName;
+            document.getElementById('messagesContainer').innerHTML = '';
+            
+            addMessage('System', `Kamu sekarang terhubung dengan ${partnerName}. Mulai percakapan dengan ramah! 💚`, false, false, true);
+            
+            // Start checking for new messages
+            startMessagePolling();
+        }
+
+        async function startMessagePolling() {
+            if (checkInterval) clearInterval(checkInterval);
+            
+            checkInterval = setInterval(async () => {
+                await checkNewMessages();
+            }, 2000); // Check every 2 seconds
+        }
+
+        async function checkNewMessages() {
+            if (!currentMatchId) return;
+            
+            try {
+                const matchKey = `${STORAGE_PREFIX}match_${currentMatchId}`;
+                const matchData = await window.storage.get(matchKey, true);
+                
+                if (!matchData) return;
+                
+                const match = JSON.parse(matchData.value);
+                
+                // Get new messages
+                const newMessages = match.messages.filter(msg => msg.timestamp > lastMessageCheck);
+                
+                if (newMessages.length > 0) {
+                    newMessages.forEach(msg => {
+                        if (msg.userId !== currentUserId) {
+                            addMessage(msg.userName, msg.content, false, false);
+                        }
+                    });
+                    lastMessageCheck = Date.now();
+                }
+            } catch (error) {
+                console.error('Error checking messages:', error);
+            }
+        }
+
+        async function startChat() {
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('chatInterface').style.display = 'flex';
+            
+            await initializeUser();
+            await findMatch();
+            
+            // Start updating active user count periodically
+            activeUsersInterval = setInterval(updateActiveUserCount, 10000); // Every 10 seconds
+        }
+
+        function addMessage(username, content, isSelf = false, animate = true, isSystem = false) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isSelf ? 'self' : ''}`;
+            if (animate) {
+                messageDiv.style.animation = 'messageSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            }
+            
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            
+            const avatarText = username.substring(0, 2).toUpperCase();
+            
+            const messageClass = isSystem ? 'style="background: rgba(0, 212, 255, 0.1); border-left-color: var(--accent-secondary);"' : '';
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <div class="avatar">${avatarText}</div>
+                    <span class="username">${username}</span>
+                    <span class="timestamp">${timeString}</span>
+                </div>
+                <div class="message-content" ${messageClass}>${content}</div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (message === '' || !currentMatchId) return;
+            
+            // Add user message to UI
+            addMessage(userName, message, true);
+            input.value = '';
+            input.style.height = 'auto';
+            
+            // Save message to storage
+            try {
+                const matchKey = `${STORAGE_PREFIX}match_${currentMatchId}`;
+                const matchData = await window.storage.get(matchKey, true);
+                
+                if (!matchData) return;
+                
+                const match = JSON.parse(matchData.value);
+                match.messages.push({
+                    userId: currentUserId,
+                    userName: userName,
+                    content: message,
+                    timestamp: Date.now()
+                });
+                match.lastActivity = Date.now();
+                
+                await window.storage.set(matchKey, JSON.stringify(match), true);
+                
+                // Update active matches timestamp
+                const matchesKey = `${STORAGE_PREFIX}active_matches`;
+                const matchesData = await window.storage.get(matchesKey, true);
+                if (matchesData) {
+                    let matches = JSON.parse(matchesData.value);
+                    const matchIndex = matches.findIndex(m => m.matchId === currentMatchId);
+                    if (matchIndex !== -1) {
+                        matches[matchIndex].lastActivity = Date.now();
+                        await window.storage.set(matchesKey, JSON.stringify(matches), true);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error sending message:', error);
+            }
+        }
+
+        // Auto-resize textarea
+        const messageInput = document.getElementById('messageInput');
+        if (messageInput) {
+            messageInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            });
+
+            // Enter to send (Shift+Enter for new line)
+            messageInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', async () => {
+            if (checkInterval) clearInterval(checkInterval);
+            if (activeUsersInterval) clearInterval(activeUsersInterval);
+            
+            // Remove from pool if still waiting
+            try {
+                const poolKey = `${STORAGE_PREFIX}pool_${currentRoomId}`;
+                const poolData = await window.storage.get(poolKey, true);
+                
+                if (poolData) {
+                    let pool = JSON.parse(poolData.value);
+                    pool.users = pool.users.filter(u => u.userId !== currentUserId);
+                    await window.storage.set(poolKey, JSON.stringify(pool), true);
+                }
+            } catch (error) {
+                console.log('Cleanup error:', error);
+            }
+        });
+
+        // Initial user count update
+        updateActiveUserCount();
+        setInterval(updateActiveUserCount, 10000); // Update every 10 seconds
+    </script>
+</body>
+</html>
