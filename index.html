@@ -664,25 +664,129 @@
 
         // Share functionality
         function shareApp() {
+            // Get the current URL
+            const currentUrl = window.location.href;
+            
             const shareData = {
                 title: 'Rahasa - Ruang Curhat Anonim',
                 text: 'Yuk ngobrol bareng di Rahasa! Chat anonim dengan orang sungguhan tanpa judgment 💚',
-                url: window.location.href
+                url: currentUrl
             };
 
-            if (navigator.share) {
+            // Check if Web Share API is available (mobile browsers)
+            if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
                 navigator.share(shareData)
-                    .catch(err => console.log('Error sharing:', err));
+                    .then(() => console.log('Shared successfully'))
+                    .catch(err => {
+                        console.log('Error sharing:', err);
+                        // Fallback to copy
+                        copyToClipboard(currentUrl);
+                    });
             } else {
-                // Fallback: copy link
-                navigator.clipboard.writeText(window.location.href)
+                // Fallback: copy to clipboard
+                copyToClipboard(currentUrl);
+            }
+        }
+
+        // Helper function to copy to clipboard
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text)
                     .then(() => {
-                        alert('Link berhasil disalin! Share ke teman-temanmu 🎉');
+                        showNotification('✅ Link berhasil disalin! Share ke teman-temanmu 🎉');
                     })
                     .catch(() => {
-                        prompt('Copy link ini untuk share:', window.location.href);
+                        // Final fallback: show prompt
+                        fallbackCopy(text);
                     });
+            } else {
+                // Fallback for older browsers
+                fallbackCopy(text);
             }
+        }
+
+        // Fallback copy method for older browsers
+        function fallbackCopy(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showNotification('✅ Link berhasil disalin! Share ke teman-temanmu 🎉');
+            } catch (err) {
+                // Ultimate fallback: show prompt
+                const userCopy = prompt('Copy link ini untuk share:', text);
+                if (userCopy !== null) {
+                    showNotification('📋 Jangan lupa share link-nya ya!');
+                }
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // Show notification
+        function showNotification(message) {
+            // Remove existing notification if any
+            const existingNotif = document.getElementById('shareNotification');
+            if (existingNotif) {
+                existingNotif.remove();
+            }
+
+            const notification = document.createElement('div');
+            notification.id = 'shareNotification';
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+                color: var(--bg-primary);
+                padding: 16px 24px;
+                border-radius: 12px;
+                box-shadow: 0 8px 24px rgba(0, 255, 157, 0.4);
+                font-weight: 600;
+                font-size: 14px;
+                z-index: 10000;
+                animation: slideIn 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            // Add animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from {
+                        transform: translateX(400px);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                @keyframes slideOut {
+                    from {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                    to {
+                        transform: translateX(400px);
+                        opacity: 0;
+                    }
+                }
+            `;
+            if (!document.getElementById('notificationStyles')) {
+                style.id = 'notificationStyles';
+                document.head.appendChild(style);
+            }
+
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
         }
 
         // Update active user count
